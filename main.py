@@ -10,6 +10,7 @@ import os
 from dotenv import load_dotenv
 import sqlite3
 import datetime
+import matplotlib.pyplot as plt
 
 def login_to_linkedin(driver: webdriver.Chrome, username: str, password: str) -> None:
     """
@@ -81,6 +82,22 @@ def add_connection_data_to_db(c: sqlite3.Cursor, connection_count: int) -> None:
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     c.execute("INSERT INTO connections VALUES (?, ?)", (today, connection_count))
 
+def plot_connection_data(snapshot: list[tuple[str, int]]) -> None:
+    """
+    Plots the connection data
+    """
+    dates = [row[0] for row in snapshot]
+    connection_counts = [row[1] for row in snapshot]
+
+    plt.plot(dates, connection_counts)
+    plt.xlabel("Date")
+    plt.ylabel("Connection Count")
+    plt.title("LinkedIn Connection Count Over Time")
+    plt.show()
+
+    # Save as .png to the current directory
+    plt.savefig("connection_count.png")
+
 def main():
     username, password = get_credentials()
     
@@ -105,6 +122,9 @@ def main():
     print(snapshot)
 
     conn.commit()
+
+    # Plot the connection data
+    plot_connection_data(snapshot)
 
 if __name__ == "__main__":
     main()
