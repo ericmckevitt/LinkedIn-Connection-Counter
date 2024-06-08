@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from lxml import etree
 import os
 from dotenv import load_dotenv
+import sqlite3
+import datetime
 
 def login_to_linkedin(driver: webdriver.Chrome, username: str, password: str) -> None:
     driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
@@ -33,6 +35,21 @@ def get_credentials() -> tuple[str, str]:
     password = os.getenv("LINKEDIN_PASSWORD")
     return username, password
 
+def connect_to_db():
+    conn = sqlite3.connect('linkedin.db')
+    c = conn.cursor()
+    
+    # Create connections table if it doesn't exist with the following columns: date, connection_count
+    c.execute('''CREATE TABLE IF NOT EXISTS connections
+                 (date text, connection_count integer)''')
+
+    return conn, c
+
+def clear_db():
+    conn, c = connect_to_db()
+    c.execute("DROP TABLE connections")
+    conn.commit()
+
 if __name__ == "__main__":
     username, password = get_credentials()
     
@@ -46,3 +63,17 @@ if __name__ == "__main__":
 
     # Close the driver
     driver.close()
+
+    # Get the date
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+    conn, c = connect_to_db()
+    c.execute("INSERT INTO connections VALUES (?, ?)", (today, connection_count))
+
+    # Select all from the connections table
+    c.execute("SELECT * FROM connections")
+    
+    snapshot = c.fetchall()
+    print(snapshot)
+
+    conn.commit()
