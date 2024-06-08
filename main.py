@@ -53,9 +53,9 @@ def connect_to_db() -> tuple[sqlite3.Connection, sqlite3.Cursor]:
     conn = sqlite3.connect('linkedin.db')
     c = conn.cursor()
     
-    # Create connections table if it doesn't exist with the following columns: date, connection_count
+    # Create connections table if it doesn't exist with the following columns: datetime, connection_count
     c.execute('''CREATE TABLE IF NOT EXISTS connections
-                 (date text, connection_count integer)''')
+                 (datetime text, connection_count integer)''')
 
     return conn, c
 
@@ -64,7 +64,10 @@ def clear_db():
     Clears the connections table
     """
     conn, c = connect_to_db()
-    c.execute("DROP TABLE connections")
+    c.execute("DROP TABLE IF EXISTS connections")
+    conn.commit()
+    c.execute('''CREATE TABLE IF NOT EXISTS connections
+                    (datetime text, connection_count integer)''')
     conn.commit()
 
 def get_connection_data_from_db(c: sqlite3.Cursor) -> list[tuple[str, int]]:
@@ -78,25 +81,37 @@ def add_connection_data_to_db(c: sqlite3.Cursor, connection_count: int) -> None:
     """
     Adds a row to the connections table
     """
-    # Get the date
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-    c.execute("INSERT INTO connections VALUES (?, ?)", (today, connection_count))
+    # Get the current datetime
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO connections VALUES (?, ?)", (current_datetime, connection_count))
 
 def plot_connection_data(snapshot: list[tuple[str, int]]) -> None:
     """
-    Plots the connection data
+    Plots the connection data and saves the plot as a PNG file
     """
-    dates = [row[0] for row in snapshot]
+    if not snapshot:
+        print("No data to plot.")
+        return
+
+    datetimes = [datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S") for row in snapshot]
     connection_counts = [row[1] for row in snapshot]
 
-    plt.plot(dates, connection_counts)
-    plt.xlabel("Date")
+    # Print data points to verify
+    print("Datetimes:", datetimes)
+    print("Connection Counts:", connection_counts)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(datetimes, connection_counts, marker='o')  # Add markers to the plot
+    plt.xlabel("Datetime")
     plt.ylabel("Connection Count")
     plt.title("LinkedIn Connection Count Over Time")
-    plt.show()
-
+    plt.xticks(rotation=45)
+    plt.tight_layout()  # Adjust layout to fit datetime labels
+    
     # Save as .png to the current directory
     plt.savefig("connection_count.png")
+
+    plt.show()
 
 def main():
     username, password = get_credentials()
@@ -128,3 +143,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # clear_db()
