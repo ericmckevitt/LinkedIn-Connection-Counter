@@ -12,6 +12,9 @@ import sqlite3
 import datetime
 
 def login_to_linkedin(driver: webdriver.Chrome, username: str, password: str) -> None:
+    """
+    Logs into LinkedIn using the given username and password
+    """
     driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
     driver.implicitly_wait(10)
     
@@ -25,17 +28,27 @@ def login_to_linkedin(driver: webdriver.Chrome, username: str, password: str) ->
     driver.find_element(By.XPATH, "/html/body/div/main/div[2]/div[1]/form/div[3]/button").click()
 
 def get_connection_count(driver: webdriver.Chrome, username: str, password: str) -> int:
+    """
+    Logs into LinkedIn and returns the number of connections
+    """
+
     login_to_linkedin(driver, username, password)
     connection_count = driver.find_element(By.XPATH, "/html/body/div[4]/div[3]/div/div/div/div/div[2]/div/div/main/div/section/header/h1").text
     return int(connection_count.split(" ")[0].replace(",", ""))
 
 def get_credentials() -> tuple[str, str]:
+    """
+    Returns the LinkedIn username and password from the .env file
+    """
     load_dotenv()
     username = os.getenv("LINKEDIN_USERNAME")
     password = os.getenv("LINKEDIN_PASSWORD")
     return username, password
 
-def connect_to_db():
+def connect_to_db() -> tuple[sqlite3.Connection, sqlite3.Cursor]:
+    """
+    Connects to the SQLite database and returns the connection and cursor
+    """
     conn = sqlite3.connect('linkedin.db')
     c = conn.cursor()
     
@@ -46,11 +59,29 @@ def connect_to_db():
     return conn, c
 
 def clear_db():
+    """
+    Clears the connections table
+    """
     conn, c = connect_to_db()
     c.execute("DROP TABLE connections")
     conn.commit()
 
-if __name__ == "__main__":
+def get_connection_data_from_db(c: sqlite3.Cursor) -> list[tuple[str, int]]:
+    """
+    Returns all the data in the connections table
+    """
+    c.execute("SELECT * FROM connections")
+    return c.fetchall()
+
+def add_connection_data_to_db(c: sqlite3.Cursor, connection_count: int) -> None:
+    """
+    Adds a row to the connections table
+    """
+    # Get the date
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    c.execute("INSERT INTO connections VALUES (?, ?)", (today, connection_count))
+
+def main():
     username, password = get_credentials()
     
     # Make a Chrome driver
@@ -64,16 +95,16 @@ if __name__ == "__main__":
     # Close the driver
     driver.close()
 
-    # Get the date
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-
     conn, c = connect_to_db()
-    c.execute("INSERT INTO connections VALUES (?, ?)", (today, connection_count))
+
+    # Add the connection count to the database
+    add_connection_data_to_db(c, connection_count)
 
     # Select all from the connections table
-    c.execute("SELECT * FROM connections")
-    
-    snapshot = c.fetchall()
+    snapshot = get_connection_data_from_db(c)
     print(snapshot)
 
     conn.commit()
+
+if __name__ == "__main__":
+    main()
