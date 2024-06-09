@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import sqlite3
 import datetime
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 def login_to_linkedin(driver: webdriver.Chrome, username: str, password: str) -> None:
     """
@@ -59,7 +60,7 @@ def connect_to_db() -> tuple[sqlite3.Connection, sqlite3.Cursor]:
 
     return conn, c
 
-def clear_db():
+def clear_db() -> None:
     """
     Clears the connections table
     """
@@ -94,6 +95,10 @@ def plot_connection_data(snapshot: list[tuple[str, int]]) -> None:
         return
 
     datetimes = [datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S") for row in snapshot]
+
+    print("Datetimes:", datetimes) # outputs: datetime.datetime(2024, 6, 8, 17, 0, 49)
+    print(f"Original Date Data: {snapshot[0][0]}") # outputs: 2024-06-08 17:00:49
+
     connection_counts = [row[1] for row in snapshot]
 
     # Print data points to verify
@@ -106,6 +111,8 @@ def plot_connection_data(snapshot: list[tuple[str, int]]) -> None:
     plt.ylabel("Connection Count")
     plt.title("LinkedIn Connection Count Over Time")
     plt.xticks(rotation=45)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))  # Custom date format
+    plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())  # Automatically adjust the date ticks
     plt.tight_layout()  # Adjust layout to fit datetime labels
     
     # Save as .png to the current directory
@@ -120,9 +127,6 @@ def main():
     driver = webdriver.Chrome(ChromeDriverManager().install())
     connection_count = get_connection_count(driver, username, password)
     print(f"Connection count: {connection_count}")
-
-    # Get the HTML
-    html = driver.page_source 
 
     # Close the driver
     driver.close()
