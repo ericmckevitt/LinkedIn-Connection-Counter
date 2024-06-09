@@ -120,6 +120,11 @@ def plot_connection_data(snapshot: list[tuple[str, int]]) -> None:
 
     plt.show()
 
+def push_to_github():
+    os.system("git add .")
+    os.system("git commit -m 'Update connection count'")
+    os.system("git push")
+
 def main():
     username, password = get_credentials()
     
@@ -144,6 +149,9 @@ def main():
 
     # Plot the connection data
     plot_connection_data(snapshot)
+
+    if input("Push to GitHub? (y/n): ").lower() == "y":
+        push_to_github()
 
 if __name__ == "__main__":
     main()
