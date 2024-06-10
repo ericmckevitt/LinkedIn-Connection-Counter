@@ -125,6 +125,10 @@ def push_to_github():
     os.system("git commit -m 'Update connection count'")
     os.system("git push")
 
+def insert_custom_amount(c: sqlite3.Cursor) -> None:
+    amount = int(input("Enter the amount of connections: "))
+    add_connection_data_to_db(c, amount)
+
 def main():
     username, password = get_credentials()
     
@@ -154,5 +158,15 @@ def main():
         push_to_github()
 
 if __name__ == "__main__":
-    main()
+    # main()
     # clear_db()
+
+    conn, c = connect_to_db()
+    insert_custom_amount(c)
+
+    conn.commit()
+
+    snapshot = get_connection_data_from_db(c)
+    plot_connection_data(snapshot)
+
+    conn.close()
